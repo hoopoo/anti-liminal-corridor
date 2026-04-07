@@ -1,0 +1,160 @@
+.app-root {
+  position: fixed;
+  inset: 0;
+  background: #0f1114;
+  overflow: hidden;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.unlock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: radial-gradient(ellipse at center, #1a1f26 0%, #0c0e11 70%);
+  color: rgba(230, 236, 245, 0.45);
+  font: 500 13px/1.4 system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.unlock-screen:hover,
+.unlock-screen:focus-visible {
+  color: rgba(230, 236, 245, 0.62);
+}
+
+.unlock-label {
+  pointer-events: none;
+}
+
+.hud {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  padding: 10px 12px;
+  border-radius: 2px;
+  background: rgba(12, 14, 18, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(216, 224, 235, 0.5);
+  font: 11px/1.45 ui-monospace, 'SF Mono', Consolas, monospace;
+  text-align: left;
+  min-width: 180px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud-row + .hud-row {
+  margin-top: 4px;
+}
+
+.hud-label {
+  opacity: 0.55;
+}
+
+.hud-value {
+  color: rgba(230, 236, 245, 0.72);
+}
+
+.decision-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  z-index: 12;
+  text-align: center;
+  padding: 14px 20px 18px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  max-width: min(92vw, 420px);
+}
+
+.decision-prompt {
+  margin: 0 0 14px;
+  font: 400 12px/1.4 system-ui, sans-serif;
+  color: rgba(226, 232, 242, 0.26);
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 8px;
+}
+
+.decision-option {
+  margin: 0;
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+  color: rgba(210, 218, 230, 0.32);
+  font: 400 13px/1.2 system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  cursor: pointer;
+  opacity: 0.18;
+  transition: opacity 0.45s ease, color 0.45s ease;
+}
+
+.decision-option:hover,
+.decision-option:focus-visible {
+  opacity: 0.34;
+  color: rgba(226, 232, 242, 0.42);
+}
+
+.decision-sep {
+  color: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  user-select: none;
+  opacity: 0.35;
+}
+
+.chrome-bar {
+  position: fixed;
+  left: 12px;
+  bottom: 10px;
+  z-index: 15;
+}
+
+.chrome-muted {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 10, 12, 0.35);
+  color: rgba(200, 208, 220, 0.38);
+  font: 11px system-ui, sans-serif;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.chrome-muted:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.chrome-muted:not(:disabled):hover {
+  color: rgba(220, 228, 240, 0.55);
+}
