@@ -115,14 +115,14 @@
   letter-spacing: 0.06em;
   text-transform: lowercase;
   cursor: pointer;
-  opacity: 0.18;
+  opacity: 0.28;
   transition: opacity 0.45s ease, color 0.45s ease;
 }
 
 .decision-option:hover,
 .decision-option:focus-visible {
-  opacity: 0.34;
-  color: rgba(226, 232, 242, 0.42);
+  opacity: 0.48;
+  color: rgba(226, 232, 242, 0.52);
 }
 
 .decision-sep {

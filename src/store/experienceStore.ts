@@ -17,10 +17,11 @@ function logEvent(payload: Record<string, unknown>) {
   console.log('[anti-liminal]', JSON.stringify(payload))
 }
 
+/** Decision を早く出すため、後半ロックを短めに */
 export const PHASE_DURATIONS_MS = {
-  p0_to_p1: 6_000,
-  p1_to_p2: 9_000,
-  p2_to_deciding: 14_000,
+  p0_to_p1: 4_500,
+  p1_to_p2: 6_500,
+  p2_to_deciding: 5_500,
 } as const
 
 const SESSION_ID =

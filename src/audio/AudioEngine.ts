@@ -32,7 +32,7 @@ function isP3Profile(p: AudioProfile): p is 'approach' | 'ignore' | 'leave' {
 }
 
 /** 全体 ~+15% — 「気のせいじゃないかも」側へ */
-const MASTER_UNMUTED = 0.52
+const MASTER_UNMUTED = 0.6
 
 export class AudioEngine {
   private ctx: AudioContext | null = null
@@ -141,7 +141,7 @@ export class AudioEngine {
     this.stereoWobble.type = 'sine'
     this.stereoWobble.frequency.value = 0.034
     this.stereoWobbleAmp = ctx.createGain()
-    this.stereoWobbleAmp.gain.value = 0.11
+    this.stereoWobbleAmp.gain.value = 0.16
     this.stereoWobble.connect(this.stereoWobbleAmp)
     this.stereoWobbleAmp.connect(this.distantPan.pan)
     this.distant.connect(this.distantPan)

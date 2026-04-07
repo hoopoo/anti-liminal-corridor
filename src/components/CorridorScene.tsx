@@ -7,6 +7,18 @@ import { useExperienceStore } from '../store/experienceStore'
 const CORRIDOR_LENGTH = 48
 const WIDTH = 3.2
 const HEIGHT = 2.8
+/** 粒子の奥行ループ範囲（カメラ側 Z_HI ＝手前 → 奥 Z_LO） */
+const DUST_Z_HI = -1.15
+const DUST_Z_LO = -CORRIDOR_LENGTH + 1.6
+const DUST_Z_SPAN = DUST_Z_HI - DUST_Z_LO
+const PHI = 0.618033988749895
+
+function wrapDustZ(z: number): number {
+  let v = z
+  while (v < DUST_Z_LO) v += DUST_Z_SPAN
+  while (v > DUST_Z_HI) v -= DUST_Z_SPAN
+  return v
+}
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t
@@ -23,29 +35,30 @@ type Atm = {
   localIntensityTarget: number
 }
 
+/** FogExp2 は density²×depth² で効くため、数値は小さめ（0.02 前後）でコリドーが読める */
 function applyBranchAtmosphere(base: Atm, branch: DecisionChoice) {
-  base.farPulse = 0.65
-  base.ambientBase = branch === 'approach' ? 0.126 : branch === 'ignore' ? 0.105 : 0.086
-  base.fogDensity = branch === 'approach' ? 0.064 : branch === 'ignore' ? 0.086 : 0.091
-  base.particleAlpha = branch === 'leave' ? 0.19 : 0.4
-  base.flickerStrength = branch === 'ignore' ? 0.058 : branch === 'approach' ? 0.026 : 0.019
+  base.farPulse = 0.72
+  base.ambientBase = branch === 'approach' ? 0.142 : branch === 'ignore' ? 0.098 : 0.092
+  base.fogDensity = branch === 'approach' ? 0.018 : branch === 'ignore' ? 0.032 : 0.034
+  base.particleAlpha = branch === 'leave' ? 0.28 : 0.5
+  base.flickerStrength = branch === 'ignore' ? 0.072 : branch === 'approach' ? 0.032 : 0.024
 
   if (branch === 'approach') {
-    base.ambientWarmth = 0.078
-    base.localWarmTarget = 0.94
-    base.localIntensityTarget = 1.09
+    base.ambientWarmth = 0.095
+    base.localWarmTarget = 1.0
+    base.localIntensityTarget = 1.26
   } else if (branch === 'ignore') {
-    base.ambientWarmth = 0.028
-    base.localWarmTarget = 0.23
-    base.localIntensityTarget = 0.52
+    base.ambientWarmth = 0.022
+    base.localWarmTarget = 0.17
+    base.localIntensityTarget = 0.42
   } else {
     /** leave: 完全初期には戻さない — わずかな痕跡（やや拾いやすい底上げ） */
-    base.ambientWarmth = 0.045
-    base.localWarmTarget = 0.135
-    base.localIntensityTarget = 0.32
-    base.fogDensity = 0.089
-    base.particleAlpha = 0.19
-    base.farPulse = 0.44
+    base.ambientWarmth = 0.055
+    base.localWarmTarget = 0.19
+    base.localIntensityTarget = 0.46
+    base.fogDensity = 0.036
+    base.particleAlpha = 0.28
+    base.farPulse = 0.52
   }
 }
 
@@ -58,46 +71,48 @@ function corridorAtmosphere(
   hover: DecisionChoice | null,
 ): Atm {
   const base: Atm = {
-    particleAlpha: 0,
+    /** P0 から粒子はごく薄く（非表示期間をなくす） */
+    particleAlpha: 0.2,
     farPulse: 0,
-    flickerStrength: 0,
-    ambientBase: 0.092,
-    fogDensity: 0.065,
+    flickerStrength: 0.018,
+    ambientBase: 0.11,
+    fogDensity: 0.022,
     ambientWarmth: 0,
-    localWarmTarget: 0.082,
-    localIntensityTarget: 0.27,
+    localWarmTarget: 0.1,
+    localIntensityTarget: 0.42,
   }
 
   if (phase >= 1) {
-    base.particleAlpha = 0.36
-    base.flickerStrength = 0.038
-    base.ambientBase = 0.103
-    base.fogDensity = 0.076
-    base.localWarmTarget = 0.115
-    base.localIntensityTarget = 0.46
+    base.particleAlpha = 0.48
+    base.flickerStrength = 0.052
+    base.ambientBase = 0.118
+    base.fogDensity = 0.028
+    base.localWarmTarget = 0.15
+    base.localIntensityTarget = 0.58
   }
 
   if (phase >= 2 && mode === 'observe') {
     base.farPulse = 1
-    base.ambientBase = 0.114
-    base.localIntensityTarget = 0.67
-    base.localWarmTarget = 0.162
+    base.ambientBase = 0.132
+    base.localIntensityTarget = 0.82
+    base.localWarmTarget = 0.2
+    base.fogDensity = 0.03
   }
 
   if (mode === 'deciding') {
     base.farPulse = 1
-    base.flickerStrength = 0.048
-    base.localIntensityTarget = 0.57
-    base.localWarmTarget = 0.147
-    base.fogDensity = 0.078
+    base.flickerStrength = 0.064
+    base.localIntensityTarget = 0.72
+    base.localWarmTarget = 0.18
+    base.fogDensity = 0.032
   }
 
   if (mode === 'resolving' && (resolveStage === 'wait' || resolveStage === 'audio')) {
-    base.farPulse = 0.44
-    base.flickerStrength = 0.017
-    base.localIntensityTarget = 0.48
-    base.localWarmTarget = 0.108
-    base.fogDensity = 0.073
+    base.farPulse = 0.52
+    base.flickerStrength = 0.024
+    base.localIntensityTarget = 0.58
+    base.localWarmTarget = 0.125
+    base.fogDensity = 0.028
   }
 
   const branch: DecisionChoice | null =
@@ -113,17 +128,17 @@ function corridorAtmosphere(
 
   if (mode === 'deciding' && hover) {
     if (hover === 'approach') {
-      base.localWarmTarget += 0.038
-      base.localIntensityTarget += 0.048
-      base.ambientWarmth += 0.018
+      base.localWarmTarget += 0.055
+      base.localIntensityTarget += 0.072
+      base.ambientWarmth += 0.026
     } else if (hover === 'leave') {
-      base.localWarmTarget = Math.max(base.localWarmTarget - 0.028, 0.034)
-      base.localIntensityTarget -= 0.038
-      base.fogDensity += 0.007
-      base.ambientWarmth = Math.max(base.ambientWarmth - 0.014, 0)
+      base.localWarmTarget = Math.max(base.localWarmTarget - 0.04, 0.03)
+      base.localIntensityTarget -= 0.055
+      base.fogDensity += 0.012
+      base.ambientWarmth = Math.max(base.ambientWarmth - 0.02, 0)
     } else if (hover === 'ignore') {
-      base.localWarmTarget += 0.016
-      base.flickerStrength += 0.011
+      base.localWarmTarget += 0.024
+      base.flickerStrength += 0.016
     }
   }
 
@@ -136,25 +151,29 @@ export function CorridorScene() {
   const spotRef = useRef<THREE.SpotLight>(null)
   const endMatRef = useRef<THREE.MeshStandardMaterial>(null)
   const particlesRef = useRef<THREE.Points>(null)
-  const fogTarget = useRef({ density: 0.072 })
+  const fogTarget = useRef({ density: 0.022 })
 
-  const smoothLocal = useRef({ warm: 0.06, intensity: 0.22 })
+  const smoothLocal = useRef({ warm: 0.08, intensity: 0.32 })
 
   const { scene } = useThree()
 
-  const particlePositions = useMemo(() => {
-    const count = 72
+  /** 基底座標：φ で間引いた分布 — 完全一様乱数より「流れ」と相性がよい */
+  const particleBase = useMemo(() => {
+    const count = 96
     const arr = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * WIDTH * 0.9
-      arr[i * 3 + 1] = Math.random() * HEIGHT * 0.85 + 0.1
-      arr[i * 3 + 2] = -4 - Math.random() * (CORRIDOR_LENGTH - 8)
+      const s = (i * PHI) % 1
+      const u = (i * PHI * PHI) % 1
+      arr[i * 3] = (s - 0.5) * WIDTH * 0.92
+      arr[i * 3 + 1] = u * HEIGHT * 0.88 + 0.08
+      const depthMix = s * 0.55 + (i / count) * 0.45
+      arr[i * 3 + 2] = DUST_Z_HI - depthMix * (DUST_Z_HI - DUST_Z_LO)
     }
     return arr
   }, [])
 
   useLayoutEffect(() => {
-    const fog = new THREE.FogExp2(new THREE.Color('#d4dce6'), 0.072)
+    const fog = new THREE.FogExp2(new THREE.Color('#c8d4e2'), 0.022)
     scene.fog = fog
     return () => {
       scene.fog = null
@@ -174,7 +193,7 @@ export function CorridorScene() {
       hoverPreview,
     )
 
-    fogTarget.current.density = lerp(fogTarget.current.density, atm.fogDensity, 0.03)
+    fogTarget.current.density = lerp(fogTarget.current.density, atm.fogDensity, 0.042)
 
     if (scene.fog instanceof THREE.FogExp2) {
       scene.fog.density = fogTarget.current.density
@@ -183,23 +202,24 @@ export function CorridorScene() {
       scene.fog.color.copy(fc)
     }
 
-    smoothLocal.current.warm = lerp(smoothLocal.current.warm, atm.localWarmTarget, 0.024)
-    smoothLocal.current.intensity = lerp(smoothLocal.current.intensity, atm.localIntensityTarget, 0.024)
+    smoothLocal.current.warm = lerp(smoothLocal.current.warm, atm.localWarmTarget, 0.038)
+    smoothLocal.current.intensity = lerp(smoothLocal.current.intensity, atm.localIntensityTarget, 0.038)
 
     const flick =
-      phase >= 1
-        ? Math.sin(t * 2.8) * atm.flickerStrength + Math.sin(t * 6.3) * (atm.flickerStrength * 0.45)
-        : 0
+      Math.sin(t * 2.8) * atm.flickerStrength + Math.sin(t * 6.3) * (atm.flickerStrength * 0.45)
+
+    /** 空間の呼吸 — 指定どおりの周波数・振幅、環境光には弱めにのみ乗せる */
+    const breath = Math.sin(t * 0.2) * 0.01
 
     if (ambientRef.current) {
-      ambientRef.current.intensity = atm.ambientBase + flick
+      ambientRef.current.intensity = atm.ambientBase + flick + breath * 0.32
       const aw = atm.ambientWarmth
-      ambientRef.current.color.setHSL(0.59 - aw * 0.04, 0.06 + aw * 0.1, 0.73 + aw * 0.05)
+      ambientRef.current.color.setHSL(0.59 - aw * 0.05, 0.06 + aw * 0.14, 0.7 + aw * 0.08)
     }
 
     const pulse =
       atm.farPulse > 0
-        ? (Math.sin(t * 1.1) * 0.5 + 0.5) * 0.4 + (Math.sin(t * 5.2) > 0.92 ? 0.35 : 0)
+        ? (Math.sin(t * 1.1) * 0.5 + 0.5) * 0.52 + (Math.sin(t * 5.2) > 0.92 ? 0.42 : 0)
         : 0
 
     const lw = smoothLocal.current.warm
@@ -208,25 +228,60 @@ export function CorridorScene() {
     if (endRef.current) {
       const lx = 0.28 + Math.sin(t * 0.35) * 0.04
       endRef.current.position.set(lx, HEIGHT * 0.52, -CORRIDOR_LENGTH + 1.35)
-      endRef.current.intensity = THREE.MathUtils.clamp(li * (0.45 + pulse * 0.35), 0.05, 1.6)
+      endRef.current.intensity = THREE.MathUtils.clamp(
+        li * (0.48 + pulse * 0.45) + breath,
+        0.06,
+        1.9,
+      )
       endRef.current.color.setHSL(0.08 + lw * 0.1, 0.2 + lw * 0.45, 0.52 + lw * 0.22)
     }
 
     if (spotRef.current) {
-      spotRef.current.intensity = 0.14 + pulse * 0.18 + lw * 0.06
+      spotRef.current.intensity = 0.17 + pulse * 0.24 + lw * 0.085 + breath * 0.55
       spotRef.current.position.x = Math.sin(t * 0.7) * 0.1
       spotRef.current.color.setHSL(0.56, 0.04, 0.92)
     }
 
     if (endMatRef.current) {
-      endMatRef.current.emissiveIntensity = 0.12 + pulse * 0.75 + lw * 0.45
+      endMatRef.current.emissiveIntensity = 0.14 + pulse * 0.92 + lw * 0.52 + breath * 0.42
       endMatRef.current.emissive.setHSL(0.09 + lw * 0.14, 0.28 + lw * 0.25, 0.4 + lw * 0.2)
     }
 
     if (particlesRef.current) {
       const m = particlesRef.current.material as THREE.PointsMaterial
-      m.opacity = lerp(m.opacity, atm.particleAlpha, 0.05)
-      particlesRef.current.visible = phase >= 1
+      m.opacity = lerp(m.opacity, atm.particleAlpha, 0.085)
+      particlesRef.current.visible = true
+      /** 頂点で奥行き流れを出すため、グループの大きな揺れは止める */
+      particlesRef.current.rotation.y = 0
+      particlesRef.current.position.y = 0
+    }
+
+    /** Points の geometry は ref より particles.geometry が確実（R3F の子 ref は取りこぼすことがある） */
+    const dustGeom = particlesRef.current?.geometry
+    const posAttr = dustGeom?.attributes.position
+    if (posAttr && particlesRef.current) {
+      const out = posAttr.array as Float32Array
+      const n = particleBase.length / 3
+      for (let i = 0; i < n; i++) {
+        const bx = particleBase[i * 3]
+        const by = particleBase[i * 3 + 1]
+        const bz = particleBase[i * 3 + 2]
+        const seed = (i * PHI) % 1
+        const phase = seed * Math.PI * 2
+        /** 奥（-Z）へゆっくり流す＋位相の違いでランダムっぽさを崩す */
+        const backFlow = t * (0.0105 + seed * 0.0065)
+        const z = wrapDustZ(bz - backFlow)
+        const sx =
+          Math.sin(t * 0.118 + phase) * 0.013 + Math.sin(t * 0.046 + phase * 1.31) * 0.0055
+        const sy = Math.cos(t * 0.092 + phase * 0.84) * 0.01
+        out[i * 3] = bx + sx
+        out[i * 3 + 1] = by + sy
+        out[i * 3 + 2] = z
+      }
+      posAttr.needsUpdate = true
+      /** 頂点更新後は BS を更新しないと全体がフラストラム外扱いで消えることがある */
+      dustGeom.boundingSphere = null
+      dustGeom.computeBoundingSphere()
     }
   })
 
@@ -234,8 +289,9 @@ export function CorridorScene() {
 
   return (
     <group>
-      <color attach="background" args={['#aeb8c4']} />
+      <color attach="background" args={['#b8c2d0']} />
       <ambientLight ref={ambientRef} intensity={0.09} color="#c8d0dc" />
+      <hemisphereLight intensity={0.35} color="#e8edf5" groundColor="#5a6270" position={[0, HEIGHT, 0]} />
       <spotLight
         ref={spotRef}
         position={[0.2, HEIGHT - 0.05, 1.2]}
@@ -249,22 +305,22 @@ export function CorridorScene() {
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, zCenter]}>
         <planeGeometry args={[WIDTH, CORRIDOR_LENGTH]} />
-        <meshStandardMaterial color="#9aa3ae" roughness={0.92} metalness={0.05} />
+        <meshStandardMaterial color="#aeb6c4" roughness={0.9} metalness={0.05} />
       </mesh>
 
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, HEIGHT, zCenter]}>
         <planeGeometry args={[WIDTH, CORRIDOR_LENGTH]} />
-        <meshStandardMaterial color="#8b93a0" roughness={0.95} metalness={0.04} />
+        <meshStandardMaterial color="#9ca6b4" roughness={0.93} metalness={0.04} />
       </mesh>
 
       <mesh position={[-WIDTH / 2, HEIGHT / 2, zCenter]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[CORRIDOR_LENGTH, HEIGHT]} />
-        <meshStandardMaterial color="#a7b0bb" roughness={0.9} metalness={0.06} />
+        <meshStandardMaterial color="#b8c2ce" roughness={0.88} metalness={0.06} />
       </mesh>
 
       <mesh position={[WIDTH / 2, HEIGHT / 2, zCenter]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[CORRIDOR_LENGTH, HEIGHT]} />
-        <meshStandardMaterial color="#a7b0bb" roughness={0.9} metalness={0.06} />
+        <meshStandardMaterial color="#b8c2ce" roughness={0.88} metalness={0.06} />
       </mesh>
 
       <mesh position={[0, HEIGHT / 2, -CORRIDOR_LENGTH + 0.05]}>
@@ -288,12 +344,12 @@ export function CorridorScene() {
         color="#dfe6f2"
       />
 
-      <points ref={particlesRef}>
+      <points ref={particlesRef} frustumCulled={false}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[particlePositions, 3]} />
+          <bufferAttribute attach="attributes-position" args={[particleBase, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.028}
+          size={0.044}
           color="#d8dee8"
           transparent
           opacity={0}
